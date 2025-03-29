@@ -1,0 +1,110 @@
+:root {
+    --primary: #0078a7;
+    --secondary: #e2725b;
+    --light: #f5f5f5;
+    --dark: #333;
+    --highlight: #ffdb58;
+    --success: #5cb85c;
+}
+
+body {
+    background-color: var(--light);
+    color: var(--dark);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.site-header {
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/img/corsica-header.jpg') center/cover no-repeat;
+    height: 40vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.day-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    transition: transform 0.3s ease;
+    border-left: 5px solid var(--primary);
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+}
+
+.day-header {
+    background-color: var(--primary);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 10px 10px 0 0;
+}
+
+.activity-item {
+    border-left: 3px solid var(--secondary);
+    padding: 8px 15px;
+    margin: 10px 0;
+    background-color: rgba(226, 114, 91, 0.1);
+    border-radius: 0 5px 5px 0;
+}
+
+.tag {
+    display: inline-block;
+    background-color: var(--highlight);
+    color: var(--dark);
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.booked {
+    background-color: var(--success);
+    color: white;
+}
+
+.not-booked {
+    background-color: #dc3545;
+    color: white;
+}
+
+.add-activity-btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+}
+
+.add-activity-btn:hover {
+    background-color: #006490;
+    color: white;
+}
+
+.auth-container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    background-color: white;
+}
+
+.footer {
+    margin-top: 50px;
+    padding: 20px 0;
+    background-color: var(--dark);
+    color: white;
+    text-align: center;
+}
+
+.alert-float {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}

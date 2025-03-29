@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vacances en Corse - Planificateur</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0078a7;
+            --secondary: #e2725b;
+            --light: #f5f5f5;
+            --dark: #333;
+            --highlight: #ffdb58;
+            --success: #5cb85c;
+        }
+        
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        header {
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://cdn.pixabay.com/photo/2017/08/23/10/11/corsica-2672474_1280.jpg') center/cover no-repeat;
+            height: 40vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .day-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .day-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .day-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .activity-item {
+            border-left: 3px solid var(--secondary);
+            padding: 8px 15px;
+            margin: 10px 0;
+            background-color: rgba(226, 114, 91, 0.1);
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .tag {
+            display: inline-block;
+            background-color: var(--highlight);
+            color: var(--dark);
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .booked {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .not-booked {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .add-activity-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+        }
+        
+        .add-activity-btn:hover {
+            background-color: #006490;
+        }
+        
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        
+        #loginForm, #tripContent {
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Section d'authentification (initialement visible) -->
+    <div id="loginForm" class="auth-container">
+        <h2 class="text-center mb-4">Connexion - Voyage en Corse</h2>
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" placeholder="votre@email.com">
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="password">
+        </div>
+        <button id="loginBtn" class="btn btn-primary w-100">Se connecter</button>
+        <div id="loginError" class="text-danger mt-3 text-center"></div>
+    </div>
+
+    <!-- Contenu principal (initialement caché) -->
+    <div id="tripContent" style="display: none;">
+        <header>
+            <h1>Découverte de la Corse du Sud</h1>
+            <p class="subtitle">10 jours d'aventures entre mer turquoise et montagnes sauvages</p>
+            <button id="logoutBtn" class="btn btn-light mt-3">Déconnexion</button>
+        </header>
+
+        <div class="container">
+            <!-- Filtres et statistiques -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Budget</h5>
+                            <div class="progress mb-3">
+                                <div id="budgetProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Total dépensé: <span id="totalSpent">0</span>€</span>
+                                <span>Budget: <span id="totalBudget">2000</span>€</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Filtres</h5>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary" data-filter="all">Tout</button>
+                                <button type="button" class="btn btn-outline-success" data-filter="booked">Réservé</button>
+                                <button type="button" class="btn btn-outline-danger" data-filter="not-booked">À réserver</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteneur pour les jours -->
+            <div class="row" id="daysContainer">
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal pour ajouter/modifier une activité -->
+        <div class="modal fade" id="activityModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle">Ajouter une activité</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="activityForm">
+                            <input type="hidden" id="dayId">
+                            <input type="hidden" id="activityId">
+                            
+                            <div class="mb-3">
+                                <label for="activityName" class="form-label">Nom de l'activité</label>
+                                <input type="text" class="form-control" id="activityName" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="activityTime" class="form-label">Horaire</label>
+                                <input type="text" class="form-control" id="activityTime" placeholder="ex: 10h00-12h00">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="activityPrice" class="form-label">Prix (€)</label>
+                                <input type="number" class="form-control" id="activityPrice" min="0" step="0.01">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="activityLink" class="form-label">Lien (site web)</label>
+                                <input type="url" class="form-control" id="activityLink" placeholder="https://...">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="activityNotes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="activityNotes" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="activityBooked">
+                                <label class="form-check-label" for="activityBooked">
+                                    Réservé
+                                </label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="activityTags" class="form-label">Tags (séparés par des virgules)</label>
+                                <input type="text" class="form-control" id="activityTags" placeholder="ex: Randonnée, Plage, Culture">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-danger" id="deleteActivityBtn" style="display:none;">Supprimer</button>
+                        <button type="button" class="btn btn-primary" id="saveActivityBtn">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Firebase -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module">
+        // Import des fonctions Firebase
+        import { initializeApp } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push, set, update, remove } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-auth.js";
+
+        // Configuration Firebase - À REMPLACER AVEC VOS INFOS
+        const firebaseConfig = {
+
+  apiKey: "AIzaSyCkicf75jmCRUMeT6oohEJ3ICVDprVzbEg",
+
+  authDomain: "corsican-vacations.firebaseapp.com",
+
+  projectId: "corsican-vacations",
+
+  storageBucket: "corsican-vacations.firebasestorage.app",
+
+  messagingSenderId: "504996403509",
+
+  appId: "1:504996403509:web:a696340f95bf2c062c147c",
+
+  measurementId: "G-59K6GNSTXT"
+
+};
+        // Initialisation de Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth();
+
+        // Référence aux éléments DOM
+        const loginForm = document.getElementById('loginForm');
+        const tripContent = document.getElementById('tripContent');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('loginError');
+        const daysContainer = document.getElementById('daysContainer');
+        const totalSpentEl = document.getElementById('totalSpent');
+        const totalBudgetEl = document.getElementById('totalBudget');
+        const budgetProgressBar = document.getElementById('budgetProgress');
+
+        // Variables pour le modal d'activité
+        const activityModal = new bootstrap.Modal(document.getElementById('activityModal'));
+        const activityForm = document.getElementById('activityForm');
+        const modalTitle = document.getElementById('modalTitle');
+        const dayIdInput = document.getElementById('dayId');
+        const activityIdInput = document.getElementById('activityId');
+        const activityNameInput = document.getElementById('activityName');
+        const activityTimeInput = document.getElementById('activityTime');
+        const activityPriceInput = document.getElementById('activityPrice');
+        const activityLinkInput = document.getElementById('activityLink');
+        const activityNotesInput = document.getElementById('activityNotes');
+        const activityBookedInput = document.getElementById('activityBooked');
+        const activityTagsInput = document.getElementById('activityTags');
+        const saveActivityBtn = document.getElementById('saveActivityBtn');
+        const deleteActivityBtn = document.getElementById('deleteActivityBtn');
+
+        // Gestion de l'authentification
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => {
+                    loginError.textContent = '';
+                    loginForm.style.display = 'none';
+                    tripContent.style.display = 'block';
+                })
+                .catch((error) => {
+                    loginError.textContent = 'Erreur d\'authentification : ' + error.message;
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                tripContent.style.display = 'none';
+                loginForm.style.display = 'block';
+            });
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginForm.style.display = 'none';
+                tripContent.style.display = 'block';
+                loadTripData();
+            } else {
+                tripContent.style.display = 'none';
+                loginForm.style.display = 'block';
+            }
+        });
+
+        // Chargement des données depuis Firebase
+        function loadTripData() {
+            const tripRef = ref(database, 'trip');
+            
+            onValue(tripRef, (snapshot) => {
+                const tripData = snapshot.val() || createInitialData();
+                renderDays(tripData.days);
+                updateBudget(tripData.budget);
+            });
+        }
+
+        // Création des données initiales si aucune données n'existe
+        function createInitialData() {
+            const initialData = {
+                days: [
+                    {
+                        id: "jour1",
+                        date: "10/06",
+                        title: "Arrivée à Porto-Vecchio",
+                        activities: {}
+                    },
+                    {
+                        id: "jour2",
+                        date: "11/06",
+                        title: "Aiguilles de Bavella & Piscines du Cavu",
+                        activities: {}
+                    },
+                    // Ajoutez le reste des jours ici...
+                ],
+                budget: {
+                    total: 2000,
+                    spent: 0
+                }
+            };
+            
+            set(ref(database, 'trip'), initialData);
+            return initialData;
+        }
+
+        // Affichage des jours
+        function renderDays(days) {
+            daysContainer.innerHTML = '';
+            
+            days.forEach(day => {
+                const dayCard = document.createElement('div');
+                dayCard.className = 'col-lg-6 day-card-container';
+                dayCard.setAttribute('data-day-id', day.id);
+                
+                let activitiesHTML = '';
+                let hasBookedActivities = false;
+                let hasNotBookedActivities = false;
+                
+                // Création du HTML pour les activités
+                if (day.activities) {
+                    Object.entries(day.activities).forEach(([activityId, activity]) => {
+                        if (activity.booked) {
+                            hasBookedActivities = true;
+                        } else {
+                            hasNotBookedActivities = true;
+                        }
+                        
+                        const tagsHTML = activity.tags ? activity.tags.map(tag => 
+                            `<span class="tag">${tag}</span>`).join('') : '';
+                        
+                        activitiesHTML += `
+                            <div class="activity-item" data-activity-id="${activityId}" data-booked="${activity.booked}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5>${activity.name}</h5>
+                                    <span class="badge ${activity.booked ? 'booked' : 'not-booked'}">${activity.booked ? 'Réservé' : 'À réserver'}</span>
+                                </div>
+                                ${activity.time ? `<p><strong>Horaire:</strong> ${activity.time}</p>` : ''}
+                                ${activity.price ? `<p><strong>Prix:</strong> ${activity.price}€</p>` : ''}
+                                ${activity.notes ? `<p>${activity.notes}</p>` : ''}
+                                ${activity.link ? `<p><a href="${activity.link}" target="_blank">Plus d'informations</a></p>` : ''}
+                                <div>${tagsHTML}</div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                // Attribution des classes pour le filtrage
+                let dayClasses = 'day-card card mb-4';
+                if (hasBookedActivities) dayClasses += ' has-booked';
+                if (hasNotBookedActivities) dayClasses += ' has-not-booked';
+                
+                dayCard.innerHTML = `
+                    <div class="${dayClasses}">
+                        <div class="day-header">
+                            <h3>${day.date} - ${day.title}</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="activities-container">
+                                ${activitiesHTML || '<p>Aucune activité planifiée</p>'}
+                            </div>
+                            <button class="btn add-activity-btn mt-3" data-day-id="${day.id}">
+                                + Ajouter une activité
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                daysContainer.appendChild(dayCard);
+            });
+            
+            // Événement pour ouvrir le modal d'ajout d'activité
+            document.querySelectorAll('.add-activity-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const dayId = e.target.getAttribute('data-day-id');
+                    openAddActivityModal(dayId);
+                });
+            });
+            
+            // Événement pour modifier une activité existante
+            document.querySelectorAll('.activity-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const dayId = e.currentTarget.closest('[data-day-id]').getAttribute('data-day-id');
+                    const activityId = e.currentTarget.getAttribute('data-activity-id');
+                    openEditActivityModal(dayId, activityId);
+                });
+            });
+        }
+        
+        // Mise à jour des informations de budget
+        function updateBudget(budget) {
+            totalSpentEl.textContent = budget.spent;
+            totalBudgetEl.textContent = budget.total;
+            
+            const percentage = (budget.spent / budget.total) * 100;
+            budgetProgressBar.style.width = `${Math.min(percentage, 100)}%`;
+            
+            if (percentage > 100) {
+                budgetProgressBar.classList.add('bg-danger');
+            } else if (percentage > 75) {
+                budgetProgressBar.classList.add('bg-warning');
+            } else {
+                budgetProgressBar.classList.add('bg-success');
+            }
+        }
+        
+        // Filtres
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filter = e.target.getAttribute('data-filter');
+                
+                document.querySelectorAll('.day-card-container').forEach(day => {
+                    if (filter === 'all') {
+                        day.style.display = 'block';
+                    } else if (filter === 'booked') {
+                        day.style.display = day.querySelector('.day-card').classList.contains('has-booked') ? 'block' : 'none';
+                    } else if (filter === 'not-booked') {
+                        day.style.display = day.querySelector('.day-card').classList.contains('has-not-booked') ? 'block' : 'none';
+                    }
+                });
+                
+                // Style des boutons actifs
+                document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+        
+        // Ouvrir le modal pour ajouter une activité
+        function openAddActivityModal(dayId) {
+            modalTitle.textContent = 'Ajouter une activité';
+            activityForm.reset();
+            dayIdInput.value = dayId;
+            activityIdInput.value = '';
+            deleteActivityBtn.style.display = 'none';
+            activityModal.show();
+        }
+        
+        // Ouvrir le modal pour modifier une activité
+        function openEditActivityModal(dayId, activityId) {
+            modalTitle.textContent = 'Modifier une activité';
+            dayIdInput.value = dayId;
+            activityIdInput.value = activityId;
+            deleteActivityBtn.style.display = 'inline-block';
+            
+            // Récupérer les données de l'activité
+            const activityRef = ref(database, `trip/days/${dayId}/activities/${activityId}`);
+            onValue(activityRef, (snapshot) => {
+                const activity = snapshot.val();
+                if (activity) {
+                    activityNameInput.value = activity.name || '';
+                    activityTimeInput.value = activity.time || '';
+                    activityPriceInput.value = activity.price || '';
+                    activityLinkInput.value = activity.link || '';
+                    activityNotesInput.value = activity.notes || '';
+                    activityBookedInput.checked = activity.booked || false;
+                    activityTagsInput.value = activity.tags ? activity.tags.join(', ') : '';
+                    
+                    activityModal.show();
+                }
+            }, { onlyOnce: true });
+        }
+        
+        // Enregistrer une activité
+        saveActivityBtn.addEventListener('click', () => {
+            const dayId = dayIdInput.value;
+            const activityId = activityIdInput.value;
+            const activityData = {
+                name: activityNameInput.value,
+                time: activityTimeInput.value,
+                price: parseFloat(activityPriceInput.value) || 0,
+                link: activityLinkInput.value,
+                notes: activityNotesInput.value,
+                booked: activityBookedInput.checked,
+                tags: activityTagsInput.value ? activityTagsInput.value.split(',').map(tag => tag.trim()) : []
+            };
+            
+            if (activityId) {
+                // Mise à jour d'une activité existante
+                update(ref(database, `trip/days/${dayId}/activities/${activityId}`), activityData);
+            } else {
+                // Ajout d'une nouvelle activité
+                push(ref(database, `trip/days/${dayId}/activities`), activityData);
+            }
+            
+            // Mise à jour du budget
+            updateTripBudget();
+            
+            activityModal.hide();
+        });
+        
+        // Supprimer une activité
+        deleteActivityBtn.addEventListener('click', () => {
+            const dayId = dayIdInput.value;
+            const activityId = activityIdInput.value;
+            
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette activité ?')) {
+                remove(ref(database, `trip/days/${dayId}/activities/${activityId}`));
+                updateTripBudget();
+                activityModal.hide();
+            }
+        });
+        
+        // Mise à jour du budget total
+        function updateTripBudget() {
+            const daysRef = ref(database, 'trip/days');
+            onValue(daysRef, (snapshot) => {
+                const days = snapshot.val();
+                let totalSpent = 0;
+                
+                if (days) {
+                    Object.values(days).forEach(day => {
+                        if (day.activities) {
+                            Object.values(day.activities).forEach(activity => {
+                                if (activity.price) {
+                                    totalSpent += parseFloat(activity.price);
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                update(ref(database, 'trip/budget'), { spent: totalSpent });
+            }, { onlyOnce: true });
+        }
+    </script>
+</body>
+</html>
